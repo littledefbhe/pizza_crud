@@ -85,6 +85,22 @@ button:hover {
 
 .btn-primary {
   margin-top: 1rem;
+  display: inline-block !important;
+  background: #2e7d32 !important;
+  color: #fff !important;
+  border: none !important;
+  padding: 0.75rem 1.25rem !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
+  text-align: center !important;
+  font-size: 1rem !important;
+  line-height: 1.5 !important;
+}
+
+.btn-primary:hover {
+  background: #1b5e20 !important;
+  text-decoration: none !important;
 }
 
 /* Pizza menu display */
