@@ -31,21 +31,28 @@
           <input type="number" id="quantity" name="quantity" min="1" step="1" value="{{ form.quantity if form and form.quantity else 1 }}" required>
         </div>
 
-        <div class="field">
+        <div class="form-group">
           <label for="customer_name">Your Name</label>
-          <input type="text" id="customer_name" name="customer_name" value="{{ form.customer_name if form and form.customer_name else '' }}" required>
+          <input type="text" class="form-control" id="customer_name" name="customer_name" value="{{ form.customer_name if form and form.customer_name else '' }}" required>
         </div>
-
-        <button type="submit">Place Order</button>
+        <div class="form-group">
+          <label for="promo_code">Promo Code (optional)</label>
+          <input type="text" class="form-control" id="promo_code" name="promo_code" 
+                 placeholder="Enter promo code">
+        </div>
+        <button type="submit" class="btn btn-primary">Place Order</button>
       </form>
 
       <!-- <h2>Menu</h2> -->
       <div class="pizza-grid">
         {% for p in pizzas %}
           <div class="pizza-item">
-            <img src="{{ url_for('static', filename='images/pizzas/' + p['name'].lower().replace(' ', '') + '.avif') }}" 
+            {% set base_name = p['name'].lower() %}
+            {% set img_path = 'images/pizzas/' + base_name + '.avif' %}
+            {% set alt_img_path = 'images/pizzas/' + base_name.replace(' ', '_') + '.avif' %}
+            <img src="{{ url_for('static', filename=img_path) }}" 
                  alt="{{ p['name'] }}" class="pizza-image"
-                 onerror="this.onerror=null; this.src='/static/images/pizzas/default.jpg'">
+                 onerror="this.onerror=null; this.src='{{ url_for('static', filename=alt_img_path) }}'; if(!this.src.includes('_')) this.onerror=function(){this.src='{{ url_for('static', filename='images/pizzas/default.jpg') }}'}">
             <div class="pizza-name">{{ p['name'] }}</div>
             <div class="pizza-price">${{ '%.2f' % p['price'] }}</div>
           </div>

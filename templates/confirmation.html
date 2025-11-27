@@ -3,12 +3,49 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Order Confirmed</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <title>Order Confirmation - CRUD Pizza</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <style>
+    .order-details {
+      margin-top: 2rem;
+      padding: 1.5rem;
+      background: #f9f9f9;
+      border-radius: 8px;
+    }
+    .order-summary {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+    }
+    .order-summary th, .order-summary td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    .order-summary th {
+      background-color: #f0f0f0;
+      color: #8B2323;
+    }
+    .order-total {
+      text-align: right;
+      font-size: 1.2rem;
+      margin-top: 1.5rem;
+    }
+    .back-link {
+      display: inline-block;
+      margin-top: 2rem;
+      color: #8B2323;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .back-link:hover {
+      text-decoration: underline;
+    }
+  </style>
 </head>
 <body>
   <div class="header">
-    <img src="{{ url_for('static', filename='images/CRUD_Pizza_logo.jpg') }}" alt="CRUD Pizza Logo" class="logo">
+    <img src="{{ url_for('static', filename='images/CRUD_Pizza_logo.png') }}" alt="CRUD Pizza Logo" class="logo">
   </div>
   <div class="container">
     <h1>Thank you!</h1>
@@ -16,8 +53,9 @@
 
     <div class="order-details">
       <h2>Order Summary</h2>
-      <p><strong>Order #:</strong> {{ order.order_id }}</p>
+      <p><strong>Order #:</strong> {{ order.id }}</p>
       <p><strong>Date:</strong> {{ order.order_date }}</p>
+      <p><strong>Customer:</strong> {{ order.customer_name }}</p>
 
       <table class="order-summary">
         <thead>
@@ -32,18 +70,22 @@
           <tr>
             <td>{{ order.pizza_name }}</td>
             <td>{{ order.quantity }}</td>
-            <td>${{ '%.2f' % order.price }}</td>
-            <td>${{ '%.2f' % (order.price * order.quantity) }}</td>
+            <td>${{ '%.2f'|format(order.pizza_price) }}</td>
+            <td>${{ '%.2f'|format(order.pizza_price * order.quantity) }}</td>
           </tr>
         </tbody>
       </table>
 
       <div class="order-total">
-        <p><strong>Total:</strong> ${{ '%.2f' % order.total }}</p>
+        {% if order.discount_amount > 0 %}
+        <p><strong>Subtotal:</strong> ${{ '%.2f'|format(order.pizza_price * order.quantity) }}</p>
+        <p><strong>Discount ({{ order.promo_code }} - {{ order.discount_percent }}%):</strong> -${{ '%.2f'|format(order.discount_amount) }}</p>
+        {% endif %}
+        <p><strong>Total:</strong> ${{ '%.2f'|format((order.pizza_price * order.quantity) - order.get('discount_amount', 0)) }}</p>
       </div>
     </div>
 
-    <a href="#" class="back-link">Back to Menu</a>
+    <a href="{{ url_for('menu') }}" class="btn btn-primary">Back to Menu</a>
   </div>
 </body>
 </html>
