@@ -41,15 +41,39 @@ def init_db():
                 pizza_id INTEGER,
                 quantity INTEGER NOT NULL,
                 order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (pizza_id) REFERENCES Pizza (id)
+                customer_name TEXT,
+                promo_code_id INTEGER,
+                discount_amount REAL DEFAULT 0,
+                FOREIGN KEY (pizza_id) REFERENCES Pizza (id),
+                FOREIGN KEY (promo_code_id) REFERENCES PromoCode (id)
             )
         ''')
         
-        # Add customer_name column to Order table if it doesn't exist
-        cursor.execute('PRAGMA table_info("Order")')
-        columns = [column[1] for column in cursor.fetchall()]
-        if 'customer_name' not in columns:
-            cursor.execute('ALTER TABLE "Order" ADD COLUMN customer_name TEXT')
+        # Create PromoCode table if it doesn't exist
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS PromoCode (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                code TEXT UNIQUE NOT NULL,
+                discount_percent REAL NOT NULL,
+                is_active BOOLEAN DEFAULT 1,
+                usage_limit INTEGER,
+                times_used INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Add sample promo codes if table is empty
+        cursor.execute('SELECT COUNT(*) FROM PromoCode')
+        if cursor.fetchone()[0] == 0:
+            sample_codes = [
+                ('WELCOME10', 10, 1, 100),  # 10% off, active, 100 uses
+                ('SAVE20', 20, 1, 50),      # 20% off, active, 50 uses
+                ('HALFOFF', 50, 1, 10)      # 50% off, active, 10 uses
+            ]
+            cursor.executemany('''
+                INSERT INTO PromoCode (code, discount_percent, is_active, usage_limit)
+                VALUES (?, ?, ?, ?)
+            ''', sample_codes)
         
         # Add sample pizzas if table is empty
         cursor.execute('SELECT COUNT(*) FROM Pizza')
@@ -200,23 +224,47 @@ def create_order():
     try:
         # Start transaction
         with conn:
-            # Create the order
-            cursor = conn.cursor()
-            cursor.execute('''
-                INSERT INTO "Order" (pizza_id, quantity, customer_name)
-                VALUES (?, ?, ?)
-            ''', (pizza_id, quantity, customer_name))
-            order_id = cursor.lastrowid
+            # Get pizza price first
+            pizza = conn.execute('SELECT price FROM Pizza WHERE id = ?', (pizza_id,)).fetchone()
+            if not pizza:
+                return "Invalid pizza selected", 400
+                
+            subtotal = float(pizza['price']) * quantity
+            discount_amount = 0.0
+            promo_code_id = None
+            discount_percent = 0.0
             
             # Apply promo code if provided
             if promo_code:
-                promo, error = validate_promo_code(promo_code)
-                if promo:
-                    success, error = apply_promo_code(order_id, promo['id'], promo['discount_percent'])
-                    if not success and error:
-                        print(f"Failed to apply promo code: {error}")
-                        # Continue without promo code
+                promo = conn.execute('''
+                    SELECT * FROM PromoCode 
+                    WHERE code = ? 
+                    AND is_active = 1
+                    AND (usage_limit IS NULL OR times_used < usage_limit)
+                ''', (promo_code,)).fetchone()
                 
+                if promo:
+                    discount_percent = float(promo['discount_percent'])
+                    discount_amount = (subtotal * discount_percent) / 100
+                    promo_code_id = promo['id']
+                    
+                    # Update promo code usage
+                    conn.execute('''
+                        UPDATE PromoCode 
+                        SET times_used = times_used + 1 
+                        WHERE id = ?
+                    ''', (promo_code_id,))
+            
+            # Create the order with discount information
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO "Order" 
+                (pizza_id, quantity, customer_name, promo_code_id, discount_amount)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (pizza_id, quantity, customer_name, promo_code_id, discount_amount))
+            
+            order_id = cursor.lastrowid
+            
         return redirect(url_for('confirmation', order_id=order_id))
         
     except Exception as e:
