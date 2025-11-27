@@ -48,14 +48,14 @@
     <img src="{{ url_for('static', filename='images/CRUD_Pizza_logo.png') }}" alt="CRUD Pizza Logo" class="logo">
   </div>
   <div class="container">
-    <h1>Thank you!</h1>
+    <h1>Thank you, {{ order.customer_name }}!</h1>
     <p>Your order has been placed and is being prepared.</p>
 
     <div class="order-details">
       <h2>Order Summary</h2>
       <p><strong>Order #:</strong> {{ order.id }}</p>
       <p><strong>Date:</strong> {{ order.order_date }}</p>
-      <p><strong>Customer:</strong> {{ order.customer_name }}</p>
+      <p><strong>Promo Code:</strong> {{ order.promo_code }} ({{ '%.0f'|format(order.discount_percent) }}% off)</p>
 
       <table class="order-summary">
         <thead>
@@ -78,10 +78,10 @@
 
       <div class="order-total">
         {% if order.discount_amount > 0 %}
-        <p><strong>Subtotal:</strong> ${{ '%.2f'|format(order.pizza_price * order.quantity) }}</p>
-        <p><strong>Discount ({{ order.promo_code }} - {{ order.discount_percent }}%):</strong> -${{ '%.2f'|format(order.discount_amount) }}</p>
+        <p><strong>Total:</strong> ${{ '%.2f'|format(order.pizza_price * order.quantity) }}</p>
+        <p><strong>Discount:</strong> -${{ '%.2f'|format(order.discount_amount) }}</p>
         {% endif %}
-        <p><strong>Total:</strong> ${{ '%.2f'|format((order.pizza_price * order.quantity) - order.get('discount_amount', 0)) }}</p>
+        <p><strong>Discounted Total:</strong> ${{ '%.2f'|format((order.pizza_price * order.quantity) - order.get('discount_amount', 0)) }}</p>
       </div>
     </div>
 

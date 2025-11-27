@@ -19,6 +19,34 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+def update_pizza_prices():
+    """Update pizza prices in the database"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Update prices for specific pizzas
+        price_updates = [
+            ('Pepperoni', 13.99),
+            ('Hawaiian', 13.49),
+            ('Supreme', 15.49),
+            ('BBQ Chicken', 13.99)
+        ]
+        
+        for name, price in price_updates:
+            cursor.execute('UPDATE Pizza SET price = ? WHERE name = ?', (price, name))
+            
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Error updating pizza prices: {e}")
+        if 'conn' in locals():
+            conn.rollback()
+        return False
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
 def init_db():
     """Create database tables if they don't exist"""
     try:
@@ -80,16 +108,19 @@ def init_db():
         if cursor.fetchone()[0] == 0:
             sample_pizzas = [
                 ('Margherita', 14.99),
-                ('Pepperoni', 1.99),
-                ('Hawaiian', 99.99),
+                ('Pepperoni', 13.99),
+                ('Hawaiian', 13.49),
                 ('Vegetarian', 12.99),
-                ('Supreme', 14.99),
+                ('Supreme', 15.49),
                 ('BBQ Chicken', 13.99),
                 ('Meat Lovers', 15.99),
                 ('Buffalo', 16.99)
             ]
             cursor.executemany('INSERT INTO Pizza (name, price) VALUES (?, ?)', sample_pizzas)
             conn.commit()
+        else:
+            # Update existing pizza prices
+            update_pizza_prices()
     except Exception as e:
         print(f"Error initializing database: {e}")
         if 'conn' in locals():
@@ -190,7 +221,7 @@ def get_order_details(order_id):
     conn = get_db_connection()
     try:
         order = conn.execute('''
-            SELECT o.id, o.quantity, o.order_date, o.discount_amount,
+            SELECT o.id, o.quantity, o.order_date, o.discount_amount, o.customer_name,
                    p.id as pizza_id, p.name as pizza_name, p.price as pizza_price,
                    pc.id as promo_code_id, pc.code as promo_code, pc.discount_percent
             FROM "Order" o
